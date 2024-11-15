@@ -25,7 +25,7 @@ uint8_t singleFollowerDev[6];
 // return String: "FF:FF:FF:FF:FF:FF"
 String macToString(uint8_t mac[6]) {
   char macStr[18]; // 6 pairs of 2 characters + null terminator
-  snprintf(macStr, sizeof(macStr), "%02X:%02X:%02X:%02X:%02X:%02X", 
+  snprintf(macStr, sizeof(macStr), "%02X:%02X:%02X:%02X:%02X:%02X",
            mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
   return String(macStr);
 }
@@ -114,8 +114,7 @@ void macStringToByteArray(const String& macString, uint8_t* byteArray) {
   return;
 }
 
-
-void OnDataRecv(const unsigned char* mac, const unsigned char* incomingData, int len) {
+void OnDataRecv(const esp_now_recv_info* mac, const unsigned char* incomingData, int len) {
   if (espNowMode != 3){
     return;
   }
@@ -124,13 +123,14 @@ void OnDataRecv(const unsigned char* mac, const unsigned char* incomingData, int
   if (espNowMegsRecv.cmd == 3) {
     char macStr[18];
     snprintf(macStr, sizeof(macStr), "%02x:%02x:%02x:%02x:%02x:%02x",
-           mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+           mac->src_addr[0], mac->src_addr[1], mac->src_addr[2],
+           mac->src_addr[3], mac->src_addr[4], mac->src_addr[5]);
 
     jsonInfoHttp.clear();
     jsonInfoHttp["T"] = CMD_ESP_NOW_RECV;
     jsonInfoHttp["mac"] = macStr;
     jsonInfoHttp["megs"] = espNowMegsRecv.message;
-    
+
     String getInfoJsonString;
     serializeJson(jsonInfoHttp, getInfoJsonString);
     Serial.println(getInfoJsonString);
@@ -192,7 +192,7 @@ void initEspNow() {
   esp_now_register_recv_cb(OnDataRecv);
 
   // register peer
-  peerInfo.channel = ESP_NOW_CHANNEL;  
+  peerInfo.channel = ESP_NOW_CHANNEL;
   peerInfo.encrypt = ESP_NOW_ENCRYPT;
 }
 
@@ -333,7 +333,7 @@ void espNowSingleDevSend(String inputMac, byte devCodeIn, float bIn, float sIn, 
     singleFollowerDev[i] = macArray[i];
   }
   esp_err_t result = esp_now_send(
-    macArray, 
+    macArray,
     (uint8_t *) &espNowMessage,
     sizeof(struct_message));
 
@@ -360,7 +360,7 @@ void espNowSingleDevFlowCtrl() {
   espNowMessage.elbow    = radE;
   espNowMessage.hand     = radG;
 
-  esp_err_t result = esp_now_send(singleFollowerDev, 
+  esp_err_t result = esp_now_send(singleFollowerDev,
                                   (uint8_t *) &espNowMessage,
                                   sizeof(struct_message));
 
